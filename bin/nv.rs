@@ -43,7 +43,7 @@ fn main() {
     let create = !repo_exists && opt.create;
     let mut repo = loop {
         let password = nv::password::prompt(create);
-        if !repo_exists || opt.debug {
+        if opt.debug {
             println!("Your password is {} characters long", password.len());
         }
 

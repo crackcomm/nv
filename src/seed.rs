@@ -18,13 +18,6 @@ pub fn mine(password: &str, diff: u64, round: u64) -> (String, String) {
 }
 
 pub fn mnemonic(password: &str, bytes: &[u8], diff: u64) -> String {
-    loop {
-        match crate::salt::mine(&password, bytes, diff, u64::MAX) {
-            Some(salt) => {
-                let salt = argon2rs::argon2d_simple(&password, &salt).encode_hex::<String>();
-                return salt;
-            }
-            None => continue,
-        }
-    }
+    let salt = crate::salt::mine(&password, bytes, diff, u64::MAX).unwrap();
+    argon2rs::argon2d_simple(&password, &salt).encode_hex::<String>()
 }

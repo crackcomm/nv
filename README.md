@@ -4,6 +4,12 @@ Secure password store highly resistant to brute-force attacks.
 
 Implements ideas from both blockchain and proof of work for creating a password repository and hashing repository password.
 
+# install
+
+```
+cargo install nv
+```
+
 # commands
 
 * `cat` - print contents of file to terminal

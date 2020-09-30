@@ -16,11 +16,15 @@ Using one additional byte brings security up significantly.
 
 It is safe enough to use four seed bytes with three seed words but nearly impossible to cheaply brute-force in case of loss.
 
+Two seed words create higher level of security against brute-force attacks and are still possible to brute-force in case of loss.
+
 # security
 
 Security is a combination of parameters: `difficulty`, `round` and `seed-bytes`.
 
 It is possible to cleverly manage those in order to make it harder to brute-force and faster to use at the same time.
+
+The most important parameter is `-r, --round` which increases amount of work required both for attackers and access.
 
 # encryption
 

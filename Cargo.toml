@@ -5,6 +5,7 @@ authors = ["Łukasz Kurowski <crackcomm@gmail.com>"]
 edition = "2018"
 description = "Secure secret store"
 license = "GPL-3.0"
+repository = "https://github.com/crackcomm/nv"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

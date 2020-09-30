@@ -12,7 +12,7 @@ path = "bin/nv.rs"
 
 [dependencies]
 dialoguer = "^0.6.2"
-zbox = { version = "0.9.1", features = ["storage-file", "libsodium-bundled"] }
+zbox = { version = "0.9.1", features = ["storage-file", "storage-zbox-native", "libsodium-bundled"] }
 structopt = "^0.3.18"
 dirs = "^3.0.1"
 console = "^0.11.3"

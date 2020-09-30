@@ -97,12 +97,17 @@ fn main() {
                 let path = args.first().map(|s| s.as_ref()).unwrap_or("/");
 
                 // create a file and write content to it
-                let mut file = OpenOptions::new().read(true).open(&mut repo, path).unwrap();
-
-                // read all content
-                let mut content = String::new();
-                file.read_to_string(&mut content).unwrap();
-                assert_eq!(content, "Hello, World!");
+                match OpenOptions::new().read(true).open(&mut repo, path) {
+                    Err(err) => {
+                        println!("Error: Path {}: {:?}", path, err);
+                    }
+                    Ok(mut file) => {
+                        // read all content
+                        let mut content = String::new();
+                        file.read_to_string(&mut content).unwrap();
+                        assert_eq!(content, "Hello, World!");
+                    }
+                }
             }
             "ls" => {
                 let path = args.first().map(|s| s.as_ref()).unwrap_or("/");

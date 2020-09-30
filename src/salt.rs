@@ -1,4 +1,5 @@
 use hex::ToHex;
+use indicatif::ProgressBar;
 use primitive_types::U256;
 
 static ISALT_SEED: &str = "c13b2d1bd9a5920c3697ac7c992c029bbb6240ebddb8f86e44a504f7c7dbfab1";
@@ -10,6 +11,8 @@ pub fn mine(password: &str, seed: &[u8], diff: u64, round: u64) -> Option<String
     let ephseed = argon2rs::argon2d_simple(&iseed, ISALT_SEED).encode_hex::<String>();
     let mut current_hash = argon2rs::argon2d_simple(&password, &ephseed);
     let mut nonce = U256::from(current_hash);
+
+    let bar = ProgressBar::new(round);
 
     let mut iter = 0;
     let salt = loop {
@@ -29,8 +32,10 @@ pub fn mine(password: &str, seed: &[u8], diff: u64, round: u64) -> Option<String
         iter += 1;
         nonce += U256::one();
         current_hash = hash;
+        bar.inc(1);
 
         if iter == round {
+            bar.finish_with_message("Mining on different seed.");
             return None;
         }
     };

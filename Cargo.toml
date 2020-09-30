@@ -21,7 +21,18 @@ prettytable-rs = "^0.8"
 
 rand = { version = "0.7", features = ["small_rng"] }
 hex = "^0.4.2"
+chrono = "^0.4.18"
 
 argon2rs = { version = "^0.2.5" }
 primitive-types = "0.7.2"
 mnemonic = "1.0.1"
+clipboard = "^0.5"
+
+indicatif = "^0.15"
+
+# [dev-dependencies]
+repl-rs = "^0.2.3"
+err-derive = "^0.2.4"
+
+path_abs = "^0.5"
+

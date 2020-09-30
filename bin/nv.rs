@@ -1,158 +1,113 @@
 extern crate zbox;
 
-use std::io::{Read, Seek, SeekFrom};
+use std::path::PathBuf;
 
-use console::style;
-use dialoguer::theme::ColorfulTheme;
-use prettytable::{Cell, Row, Table};
+use repl_rs::{Command, Parameter, Repl};
 use structopt::StructOpt;
-use zbox::{init_env, OpenOptions, RepoOpener};
+use zbox::init_env;
 
-fn main() {
-    let opt = nv::Opt::from_args();
-    let repo_dir = opt.repo_dir.clone().unwrap_or_else(|| {
-        dirs::home_dir()
-            .map(|mut home| {
-                home.push(".local");
-                home.push("nv");
-                home.push(&opt.namespace);
-                home
-            })
-            .unwrap()
-    });
+use nv::{
+    app::{cmd, Application, Prompt},
+    errors::Result,
+    Opt,
+};
 
-    let repo_exists = std::fs::metadata(&repo_dir).is_ok();
-    if !repo_exists && !opt.create {
-        println!(
-            "Repository {} doesn't exist. Use --create to create a repository.",
-            repo_dir.display()
-        );
-        std::process::exit(1);
+fn main() -> Result<()> {
+    let mut opt = Opt::from_args();
+    opt.repo_uri = opt
+        .repo_uri
+        .replace("$HOME", &dirs::home_dir().unwrap().display().to_string());
+    opt.repo_uri = opt.repo_uri.replace("$NAMESPACE", &opt.namespace);
+
+    if opt.suri {
+        opt.repo_uri = nv::common::secret_prompt("Repo URI");
     }
 
     if opt.debug {
-        println!("Options: {:#?}", opt);
-        println!("Repository {}", repo_dir.display());
+        println!("Repository: {}", opt.repo_uri);
     }
 
-    std::fs::create_dir_all(repo_dir.parent().unwrap()).unwrap();
+    if opt.repo_uri.starts_with("file://") {
+        let path: PathBuf = opt.repo_uri.strip_prefix("file://").unwrap().into();
+        let repo_exists = std::fs::metadata(&path).is_ok();
+        if !repo_exists && !opt.create {
+            println!(
+                "Repository {} doesn't exist. Use -c or --create flag to create a repository.",
+                opt.repo_uri
+            );
+            std::process::exit(1);
+        } else if !repo_exists {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        }
+        opt.create = opt.create && !repo_exists;
+    }
 
     // initialise Zbox environment
     init_env();
 
-    let create = !repo_exists && opt.create;
-    let mut repo = loop {
-        let password = nv::password::prompt(create);
-        if opt.debug {
-            println!("Your password is {} characters long", password.len());
-        }
+    let repo = nv::repo::open(&opt).unwrap();
+    let mut repl = Repl::new(Application {
+        cwd: "/".into(),
+        repo,
+    })
+    .with_name("nv")
+    .with_version("v0.1.0")
+    .with_description("secure password store")
+    .with_prompt(&Prompt)
+    .add_command(
+        Command::new("cat", cmd::cat)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Print contents of file to terminal"),
+    )
+    .add_command(
+        Command::new("cd", cmd::cd)
+            .with_parameter(Parameter::new("path").set_default("/")?)?
+            .with_help("Change current working directory"),
+    )
+    .add_command(Command::new("clear", cmd::clear).with_help("Clear the current screen"))
+    .add_command(
+        Command::new("cp", cmd::cp)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Copy contents of file to clipboard"),
+    )
+    .add_command(
+        Command::new("gen", cmd::gen)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_parameter(Parameter::new("length").set_default("36")?)?
+            .with_help("Generate random password and save to path"),
+    )
+    .add_command(Command::new("info", cmd::info).with_help("Print password repository information"))
+    .add_command(
+        Command::new("ls", cmd::ls)
+            .with_parameter(Parameter::new("path").set_default(".")?)?
+            .with_help("List all files in directory"),
+    )
+    .add_command(
+        Command::new("mkdir", cmd::mkdir)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Create a directory"),
+    )
+    .add_command(Command::new("pwd", cmd::pwd).with_help("Print current working directory"))
+    .add_command(
+        Command::new("rm", cmd::rm)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Remove file or directory"),
+    )
+    .add_command(
+        Command::new("set", cmd::set)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Write file contents from secret prompt"),
+    )
+    .add_command(
+        Command::new("setcp", cmd::setcp)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Write file contents from clipboard and clear clipboard"),
+    )
+    .add_command(
+        Command::new("vi", cmd::vi)
+            .with_parameter(Parameter::new("path").set_required(true)?)?
+            .with_help("Insecure file access that leaks files to your /tmp"),
+    );
 
-        let password = if create {
-            let start = std::time::Instant::now();
-            let (mnemonic, password) = nv::seed::mine(&password, opt.diff, opt.round);
-            if opt.debug {
-                println!("Seed mined in {:?}", start.elapsed());
-            }
-            println!("Mnemonic: {}", mnemonic);
-            password
-        } else {
-            let mnemonic = nv::mnemonic::prompt();
-            let start = std::time::Instant::now();
-            let password = nv::seed::mnemonic(&password, mnemonic.as_slice(), opt.diff);
-            if opt.debug {
-                println!("Hash computed in {:?}", start.elapsed());
-            }
-            password
-        };
-
-        let repo = RepoOpener::new()
-            .create(!repo_exists)
-            .compress(true)
-            .force(opt.force)
-            .cipher(zbox::Cipher::Xchacha)
-            .open(&format!("file://{}", repo_dir.display()), &password);
-        if repo.is_err() && repo_exists {
-            println!("error: {:?}", repo.unwrap_err());
-            continue;
-        }
-
-        break repo.unwrap();
-    };
-
-    loop {
-        let cmd: String = dialoguer::Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("nv")
-            .interact()
-            .unwrap();
-        let cmdline = cmd
-            .split(' ')
-            .map(ToOwned::to_owned)
-            .collect::<Vec<String>>();
-        let (cmd, args) = cmdline.split_first().unwrap();
-        match cmd.as_ref() {
-            "close" => {
-                break;
-            }
-            "cat" => {
-                let path = args.first().map(|s| s.as_ref()).unwrap_or("/");
-
-                // create a file and write content to it
-                match OpenOptions::new().read(true).open(&mut repo, path) {
-                    Err(err) => {
-                        println!("Error: Path {}: {:?}", path, err);
-                    }
-                    Ok(mut file) => {
-                        // read all content
-                        let mut content = String::new();
-                        file.read_to_string(&mut content).unwrap();
-                        assert_eq!(content, "Hello, World!");
-                    }
-                }
-            }
-            "ls" => {
-                let path = args.first().map(|s| s.as_ref()).unwrap_or("/");
-                match repo.read_dir(path) {
-                    Ok(dirs) => {
-                        let mut table = Table::new();
-                        table.add_row(Row::new(vec![Cell::new("filename"), Cell::new("version")]));
-
-                        for node in dirs {
-                            // println!("Dir: {:?}", node);
-                            table.add_row(Row::new(vec![
-                                Cell::new(&if node.metadata().is_dir() {
-                                    style(node.file_name()).blue().to_string()
-                                } else {
-                                    node.file_name().to_owned()
-                                }),
-                                Cell::new(node.file_name()),
-                            ]));
-                        }
-
-                        table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
-                        table.printstd();
-                    }
-                    Err(err) => {
-                        println!("Error: Path {}: {:?}", path, err);
-                    }
-                }
-            }
-            cmd => println!("Command unrecognized: {}", cmd),
-        }
-    }
-
-    // create a file and write content to it
-    let mut file = OpenOptions::new()
-        .create(true)
-        .open(&mut repo, "/hello_world.txt")
-        .unwrap();
-
-    file.write_once(b"Hello, World!").unwrap();
-
-    // seek to the beginning of file
-    file.seek(SeekFrom::Start(0)).unwrap();
-
-    // read all content
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
-    assert_eq!(content, "Hello, World!");
+    Ok(repl.run()?)
 }

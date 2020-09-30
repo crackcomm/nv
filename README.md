@@ -4,6 +4,20 @@ Secure password store highly resistant to brute-force attacks.
 
 Implements ideas from both blockchain and proof of work for creating a password repository and hashing repository password.
 
+# commands
+
+* `cat` - print contents of file to terminal
+* `cd` - change current working directory
+* `clear` - clear the current screen
+* `cp` - copy contents of file to clipboard
+* `info` - print password repository information
+* `ls` - list all files in directory
+* `mkdir` - create a directory
+* `pwd` - print current working directory
+* `rm` - remove file or directory
+* `set` - write file contents from secret prompt
+* `setcp` - write file contents from clipboard and clear clipboard
+* `vi` - insecure file access that leaks files to your /tmp
 
 # mnemonic
 
@@ -33,6 +47,8 @@ Uses [zbox](https://zbox.io/) file system with `Cipher::Xchacha`.
 # cloud storage
 
 It is possible to store your password repository in [ZboxFS](https://zbox.io/fs/) cloud.
+
+Use `--suri` flag to securely type your repository address without leaving a trace in bash history.
 
 # guarantees
 

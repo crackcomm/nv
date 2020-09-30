@@ -1,10 +1,8 @@
-use dialoguer::theme::ColorfulTheme;
 use zbox::RepoOpener;
 
-use crate::{mnemonic, password, seed, Opt, DEFAULT_DIFF, DEFAULT_ROUND};
+use crate::{mnemonic, password, seed, Opt};
 
-pub fn open(opt: &Opt) -> zbox::Result<zbox::Repo> {
-    let mut mined = 0;
+pub fn open(opt: &Opt) -> zbox::Result<(zbox::Repo, String)> {
     loop {
         let password = password::prompt(opt.create);
         if opt.debug {
@@ -12,37 +10,7 @@ pub fn open(opt: &Opt) -> zbox::Result<zbox::Repo> {
         }
 
         let password = if opt.create {
-            loop {
-                let start = std::time::Instant::now();
-                let (mnemonic, password) =
-                    seed::mine(&password, opt.seed_bytes, opt.diff, opt.round);
-                if opt.debug {
-                    println!("Seed mined in {:?}", start.elapsed());
-                }
-                if mined == 1 {
-                    println!("Longer mined seed is not more secure.");
-                }
-                println!("Mnemonic: {}", mnemonic);
-
-                if dialoguer::Confirm::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Keep mnemonic?")
-                    .interact()
-                    .unwrap()
-                {
-                    println!("Save this mnemonic. It is impossible to brute-force the password without this mnemonic!");
-                    // NOTE: I will implement brute-force for this mnemonic because I will forget it not once and not twice.
-                    println!("In contrary it is possible to brute-force this mnemonic by design, if you have the password.\n");
-                    if opt.round > DEFAULT_ROUND {
-                        println!("In order to open your password repository you will need to use -r {} flag.", opt.round);
-                    }
-                    if opt.diff > DEFAULT_DIFF {
-                        println!("In order to open your password repository you will need to use --diff {} flag.", opt.diff);
-                    }
-                    break password;
-                } else {
-                    mined += 1;
-                }
-            }
+            seed::create(opt, &password)
         } else {
             let mnemonic = mnemonic::prompt();
             let start = std::time::Instant::now();
@@ -55,6 +23,8 @@ pub fn open(opt: &Opt) -> zbox::Result<zbox::Repo> {
 
         let repo = RepoOpener::new()
             .force(opt.force)
+            .ops_limit(zbox::OpsLimit::Sensitive)
+            .mem_limit(zbox::MemLimit::Sensitive)
             .create(opt.create)
             .cipher(zbox::Cipher::Xchacha)
             .compress(true)
@@ -64,6 +34,6 @@ pub fn open(opt: &Opt) -> zbox::Result<zbox::Repo> {
             continue;
         }
 
-        return repo;
+        return Ok((repo?, password));
     }
 }

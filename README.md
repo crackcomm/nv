@@ -14,6 +14,7 @@ cargo install nv
 
 * `cat` - print contents of file to terminal
 * `cd` - change current working directory
+* `changepwd` - change repository password
 * `clear` - clear the current screen
 * `cp` - copy contents of file to clipboard
 * `gen` - generate random password and save to path

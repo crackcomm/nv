@@ -8,14 +8,27 @@ use std::{
 
 use console::style;
 
-use crate::errors::Result;
+use crate::{errors::Result, repo, Opt};
 
 pub struct Application {
+    pub opt: Opt,
     pub cwd: PathBuf,
     pub repo: zbox::Repo,
+    // Used just for change password.
+    password: String,
 }
 
 impl Application {
+    pub fn new(opt: Opt) -> Result<Self> {
+        let (repo, password) = repo::open(&opt)?;
+        Ok(Application {
+            opt,
+            cwd: "/".into(),
+            repo,
+            password,
+        })
+    }
+
     pub(crate) fn set_<P: AsRef<Path>>(&mut self, path: P, contents: &[u8]) -> Result<()> {
         let mut file = zbox::OpenOptions::new()
             .create(true)
@@ -62,6 +75,7 @@ pub mod cmd {
         app::{Application, Args, Time},
         common::{confirm_prompt, rand_password, secret_prompt},
         errors::{Error, Result},
+        password, seed,
     };
 
     pub fn pwd(_args: Args, app: &mut Application) -> Result<Option<String>> {
@@ -232,6 +246,25 @@ pub mod cmd {
             ctx.set_contents(password).unwrap();
             Ok(None)
         }
+    }
+
+    pub fn changepwd(_args: Args, app: &mut Application) -> Result<Option<String>> {
+        let password = password::prompt(true);
+        if app.opt.debug {
+            println!("Your password is {} characters long", password.len());
+        }
+        let password = seed::create(&app.opt, &password);
+
+        app.repo.reset_password(
+            &app.password,
+            &password,
+            zbox::OpsLimit::Sensitive,
+            zbox::MemLimit::Sensitive,
+        )?;
+
+        app.password = password;
+
+        Ok(None)
     }
 
     pub fn info(_args: Args, app: &mut Application) -> Result<Option<String>> {

@@ -45,69 +45,71 @@ fn main() -> Result<()> {
     // initialise Zbox environment
     init_env();
 
-    let repo = nv::repo::open(&opt).unwrap();
-    let mut repl = Repl::new(Application {
-        cwd: "/".into(),
-        repo,
-    })
-    .with_name("nv")
-    .with_version("v0.1.0")
-    .with_description("secure password store")
-    .with_prompt(&Prompt)
-    .add_command(
-        Command::new("cat", cmd::cat)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Print contents of file to terminal"),
-    )
-    .add_command(
-        Command::new("cd", cmd::cd)
-            .with_parameter(Parameter::new("path").set_default("/")?)?
-            .with_help("Change current working directory"),
-    )
-    .add_command(Command::new("clear", cmd::clear).with_help("Clear the current screen"))
-    .add_command(
-        Command::new("cp", cmd::cp)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Copy contents of file to clipboard"),
-    )
-    .add_command(
-        Command::new("gen", cmd::gen)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_parameter(Parameter::new("length").set_default("36")?)?
-            .with_help("Generate random password and save to path"),
-    )
-    .add_command(Command::new("info", cmd::info).with_help("Print password repository information"))
-    .add_command(
-        Command::new("ls", cmd::ls)
-            .with_parameter(Parameter::new("path").set_default(".")?)?
-            .with_help("List all files in directory"),
-    )
-    .add_command(
-        Command::new("mkdir", cmd::mkdir)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Create a directory"),
-    )
-    .add_command(Command::new("pwd", cmd::pwd).with_help("Print current working directory"))
-    .add_command(
-        Command::new("rm", cmd::rm)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Remove file or directory"),
-    )
-    .add_command(
-        Command::new("set", cmd::set)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Write file contents from secret prompt"),
-    )
-    .add_command(
-        Command::new("setcp", cmd::setcp)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Write file contents from clipboard and clear clipboard"),
-    )
-    .add_command(
-        Command::new("vi", cmd::vi)
-            .with_parameter(Parameter::new("path").set_required(true)?)?
-            .with_help("Insecure file access that leaks files to your /tmp"),
-    );
+    let app = Application::new(opt).unwrap();
+    let mut repl = Repl::new(app)
+        .with_name("nv")
+        .with_version("v0.1.0")
+        .with_description("secure password store")
+        .with_prompt(&Prompt)
+        .add_command(
+            Command::new("cat", cmd::cat)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Print contents of file to terminal"),
+        )
+        .add_command(
+            Command::new("cd", cmd::cd)
+                .with_parameter(Parameter::new("path").set_default("/")?)?
+                .with_help("Change current working directory"),
+        )
+        .add_command(
+            Command::new("changepwd", cmd::changepwd).with_help("Change repository password"),
+        )
+        .add_command(Command::new("clear", cmd::clear).with_help("Clear the current screen"))
+        .add_command(
+            Command::new("cp", cmd::cp)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Copy contents of file to clipboard"),
+        )
+        .add_command(
+            Command::new("gen", cmd::gen)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_parameter(Parameter::new("length").set_default("36")?)?
+                .with_help("Generate random password and save to path"),
+        )
+        .add_command(
+            Command::new("info", cmd::info).with_help("Print password repository information"),
+        )
+        .add_command(
+            Command::new("ls", cmd::ls)
+                .with_parameter(Parameter::new("path").set_default(".")?)?
+                .with_help("List all files in directory"),
+        )
+        .add_command(
+            Command::new("mkdir", cmd::mkdir)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Create a directory"),
+        )
+        .add_command(Command::new("pwd", cmd::pwd).with_help("Print current working directory"))
+        .add_command(
+            Command::new("rm", cmd::rm)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Remove file or directory"),
+        )
+        .add_command(
+            Command::new("set", cmd::set)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Write file contents from secret prompt"),
+        )
+        .add_command(
+            Command::new("setcp", cmd::setcp)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Write file contents from clipboard and clear clipboard"),
+        )
+        .add_command(
+            Command::new("vi", cmd::vi)
+                .with_parameter(Parameter::new("path").set_required(true)?)?
+                .with_help("Insecure file access that leaks files to your /tmp"),
+        );
 
     Ok(repl.run()?)
 }

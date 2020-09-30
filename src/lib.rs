@@ -7,7 +7,11 @@ pub static DEFAULT_ROUND: u64 = 100;
 #[structopt(name = "nv")]
 pub struct Opt {
     /// NV directory repo path.
-    #[structopt(short, long, default_value = "file://$HOME/.local/nv/$NAMESPACE")]
+    #[structopt(
+        short = "u",
+        long = "repo",
+        default_value = "file://$HOME/.local/nv/$NAMESPACE"
+    )]
     pub repo_uri: String,
 
     /// Ask for URI in secret mode.
@@ -27,15 +31,15 @@ pub struct Opt {
     pub force: bool,
 
     /// Debug features.
-    #[structopt(short, long)]
+    #[structopt(long)]
     pub debug: bool,
 
     /// Round.
-    #[structopt(long, default_value = "DEFAULT_ROUND")]
+    #[structopt(short, long, default_value = "100")]
     pub round: u64,
 
     /// Difficulty.
-    #[structopt(long, default_value = "DEFAULT_DIFF")]
+    #[structopt(short, long, default_value = "1000")]
     pub diff: u64,
 
     /// Seed bytes.

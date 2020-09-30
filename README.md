@@ -16,6 +16,7 @@ cargo install nv
 * `cd` - change current working directory
 * `clear` - clear the current screen
 * `cp` - copy contents of file to clipboard
+* `gen` - generate random password and save to path
 * `info` - print password repository information
 * `ls` - list all files in directory
 * `mkdir` - create a directory

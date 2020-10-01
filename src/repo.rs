@@ -22,7 +22,7 @@ pub fn open(opt: &Opt) -> zbox::Result<(zbox::Repo, String)> {
         };
 
         let repo = RepoOpener::new()
-            .force(opt.force)
+            .force(true)
             .ops_limit(zbox::OpsLimit::Sensitive)
             .mem_limit(zbox::MemLimit::Sensitive)
             .create(opt.create)

@@ -23,10 +23,6 @@ pub struct Opt {
     #[structopt(short, long)]
     pub create: bool,
 
-    /// Force open.
-    #[structopt(short, long)]
-    pub force: bool,
-
     /// Debug features.
     #[structopt(long)]
     pub debug: bool,

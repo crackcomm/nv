@@ -3,6 +3,8 @@ use std::fmt::Display;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Password};
 use rand::Rng;
 
+pub use argon2rs::argon2d_simple;
+
 pub fn secret_prompt<T: Display>(prompt: T) -> String {
     Password::with_theme(&ColorfulTheme::default())
         .with_prompt(&prompt.to_string())

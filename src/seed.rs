@@ -1,7 +1,10 @@
 use dialoguer::theme::ColorfulTheme;
 use hex::ToHex;
 
-use crate::{common::rand_bytes, salt, Opt, DEFAULT_DIFF, DEFAULT_ROUND};
+use crate::{
+    common::{argon2d_simple, rand_bytes},
+    salt, Opt, DEFAULT_DIFF, DEFAULT_ROUND,
+};
 
 pub fn mine(password: &str, sbytes: usize, diff: u64, round: u64) -> (String, String) {
     loop {
@@ -10,7 +13,7 @@ pub fn mine(password: &str, sbytes: usize, diff: u64, round: u64) -> (String, St
 
         match salt::mine(&password, &bytes, diff, round) {
             Some(salt) => {
-                let salt = argon2rs::argon2d_simple(&password, &salt).encode_hex::<String>();
+                let salt = argon2d_simple(&password, &salt).encode_hex::<String>();
                 return (mnemonic, salt);
             }
             None => continue,
@@ -20,7 +23,7 @@ pub fn mine(password: &str, sbytes: usize, diff: u64, round: u64) -> (String, St
 
 pub fn mnemonic(password: &str, bytes: &[u8], diff: u64) -> String {
     let salt = salt::mine(&password, bytes, diff, u64::MAX).unwrap();
-    argon2rs::argon2d_simple(&password, &salt).encode_hex::<String>()
+    argon2d_simple(&password, &salt).encode_hex::<String>()
 }
 
 pub fn create(opt: &Opt, password: &str) -> String {

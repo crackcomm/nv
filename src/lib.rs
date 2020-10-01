@@ -1,8 +1,5 @@
 use structopt::StructOpt;
 
-pub static DEFAULT_DIFF: u64 = 1000;
-pub static DEFAULT_ROUND: u64 = 100;
-
 #[derive(StructOpt, Debug)]
 #[structopt(name = "nv")]
 pub struct Opt {
@@ -35,7 +32,7 @@ pub struct Opt {
     pub debug: bool,
 
     /// Round.
-    #[structopt(short, long, default_value = "100")]
+    #[structopt(short, long, default_value = "256")]
     pub round: u64,
 
     /// Difficulty.
@@ -43,9 +40,12 @@ pub struct Opt {
     pub diff: u64,
 
     /// Seed bytes.
-    #[structopt(short = "b", long, default_value = "4")]
+    #[structopt(short = "b", long, default_value = "2")]
     pub seed_bytes: usize,
 }
+
+pub static DEFAULT_DIFF: u64 = 1_000;
+pub static DEFAULT_ROUND: u64 = 256;
 
 pub mod app;
 pub mod common;

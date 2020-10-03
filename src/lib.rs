@@ -32,7 +32,7 @@ pub struct Opt {
     pub round: u64,
 
     /// Difficulty.
-    #[structopt(short, long, default_value = "1000")]
+    #[structopt(short, long, default_value = "1")]
     pub diff: u64,
 
     /// Seed bytes.
@@ -40,7 +40,7 @@ pub struct Opt {
     pub seed_bytes: usize,
 }
 
-pub static DEFAULT_DIFF: u64 = 1_000;
+pub static DEFAULT_DIFF: u64 = 1;
 pub static DEFAULT_ROUND: u64 = 256;
 
 pub mod app;

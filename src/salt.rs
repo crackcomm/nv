@@ -7,7 +7,7 @@ use crate::common::argon2d_simple;
 static ISALT_SEED: &str = "c13b2d1bd9a5920c3697ac7c992c029bbb6240ebddb8f86e44a504f7c7dbfab1";
 
 pub fn mine(password: &str, seed: &[u8], diff: u64, round: u64) -> Option<String> {
-    let salt_target: U256 = U256::MAX / U256::from(diff);
+    let salt_target: U256 = U256::MAX / U256::from(diff * 1_000);
 
     let iseed = seed.encode_hex::<String>();
     let ephseed = argon2d_simple(&iseed, ISALT_SEED).encode_hex::<String>();

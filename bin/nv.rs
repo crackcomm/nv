@@ -48,7 +48,11 @@ fn main() -> Result<()> {
     let app = Application::new(opt).unwrap();
     let mut repl = Repl::new(app)
         .with_name("nv")
-        .with_version("v0.1.0")
+        .with_version(&format!(
+            "{} ({})",
+            env!("CARGO_PKG_VERSION"),
+            env!("GIT_HASH")
+        ))
         .with_description("secure password store")
         .with_prompt(&Prompt)
         .add_command(

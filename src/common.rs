@@ -5,26 +5,23 @@ use rand::Rng;
 
 pub use argon2rs::argon2d_simple;
 
-pub fn secret_prompt<T: Display>(prompt: T) -> String {
+pub fn secret_prompt<T: Display>(prompt: T) -> std::io::Result<String> {
     Password::with_theme(&ColorfulTheme::default())
         .with_prompt(&prompt.to_string())
         .interact()
-        .unwrap()
 }
 
-pub fn confirm_prompt<T: Display>(prompt: T) -> bool {
+pub fn confirm_prompt<T: Display>(prompt: T) -> std::io::Result<bool> {
     Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(&prompt.to_string())
         .interact()
-        .unwrap()
 }
 
-pub fn input_prompt<T: Display>(prompt: T) -> String {
+pub fn input_prompt<T: Display>(prompt: T) -> std::io::Result<String> {
     Input::with_theme(&ColorfulTheme::default())
         .allow_empty(true)
         .with_prompt(&prompt.to_string())
         .interact()
-        .unwrap()
 }
 
 pub fn rand_bytes(length: usize) -> Vec<u8> {

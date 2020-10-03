@@ -21,12 +21,12 @@ pub fn mine(password: &str, sbytes: usize, diff: u64, round: u64) -> (String, St
     }
 }
 
-pub fn mnemonic(password: &str, bytes: &[u8], diff: u64) -> String {
-    let salt = salt::mine(&password, bytes, diff, u64::MAX).unwrap();
-    argon2d_simple(&password, &salt).encode_hex::<String>()
+pub fn mnemonic(password: &str, bytes: &[u8], diff: u64) -> Option<String> {
+    let salt = salt::mine(&password, bytes, diff, u64::MAX)?;
+    Some(argon2d_simple(&password, &salt).encode_hex::<String>())
 }
 
-pub fn create(opt: &Opt, password: &str) -> String {
+pub fn create(opt: &Opt, password: &str) -> std::io::Result<String> {
     let mut mined = 0;
     loop {
         let start = std::time::Instant::now();
@@ -41,8 +41,7 @@ pub fn create(opt: &Opt, password: &str) -> String {
 
         if dialoguer::Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Keep mnemonic?")
-            .interact()
-            .unwrap()
+            .interact()?
         {
             println!("Save this mnemonic. It is impossible to brute-force the password without this mnemonic!");
             // NOTE: I will implement brute-force for this mnemonic because I will forget it not once and not twice.
@@ -56,7 +55,7 @@ pub fn create(opt: &Opt, password: &str) -> String {
             if opt.diff > DEFAULT_DIFF {
                 println!("In order to open your password repository you will need to use --diff {} flag.", opt.diff);
             }
-            break password;
+            break Ok(password);
         } else {
             mined += 1;
         }

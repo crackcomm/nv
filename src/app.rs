@@ -1,9 +1,11 @@
 extern crate zbox;
 
 use std::{
+    cell::RefCell,
     fmt,
     io::{Seek, SeekFrom},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use console::style;
@@ -13,7 +15,7 @@ use crate::{errors::Result, repo, Opt};
 pub struct Application {
     pub opt: Opt,
     pub cwd: PathBuf,
-    pub repo: zbox::Repo,
+    pub repo: Arc<RefCell<zbox::Repo>>,
     // Used just for change password.
     password: String,
 }
@@ -24,15 +26,19 @@ impl Application {
         Ok(Application {
             opt,
             cwd: "/".into(),
-            repo,
+            repo: Arc::new(RefCell::new(repo)),
             password,
         })
+    }
+
+    pub fn repo(&self) -> Arc<RefCell<zbox::Repo>> {
+        self.repo.clone()
     }
 
     pub(crate) fn set_<P: AsRef<Path>>(&mut self, path: P, contents: &[u8]) -> Result<()> {
         let mut file = zbox::OpenOptions::new()
             .create(true)
-            .open(&mut self.repo, path)?;
+            .open(&mut self.repo.borrow_mut(), path)?;
 
         file.seek(SeekFrom::Start(0))?;
         file.write_once(contents)?;
@@ -85,7 +91,7 @@ pub mod cmd {
     pub fn cd(args: Args, app: &mut Application) -> Result<Option<String>> {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(&path))?;
-        if app.repo.is_dir(&full_path)? {
+        if app.repo.borrow_mut().is_dir(&full_path)? {
             app.cwd = full_path.as_path().to_owned();
             Ok(None)
         } else {
@@ -96,7 +102,7 @@ pub mod cmd {
     pub fn mkdir(args: Args, app: &mut Application) -> Result<Option<String>> {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(path))?;
-        app.repo.create_dir_all(full_path)?;
+        app.repo.borrow_mut().create_dir_all(full_path)?;
         Ok(None)
     }
 
@@ -104,16 +110,17 @@ pub mod cmd {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(path))?;
 
-        let metadata = app.repo.metadata(&full_path)?;
+        let mut repo = app.repo.borrow_mut();
+        let metadata = repo.metadata(&full_path)?;
         if metadata.is_dir() {
             if confirm_prompt(format!(
                 "Delete directory {} with all files?",
                 full_path.as_path().display()
-            )) {
-                app.repo.remove_dir_all(full_path)?;
+            ))? {
+                repo.remove_dir_all(full_path)?;
             }
-        } else if confirm_prompt(format!("Delete file {}?", full_path.as_path().display())) {
-            app.repo.remove_file(full_path)?;
+        } else if confirm_prompt(format!("Delete file {}?", full_path.as_path().display()))? {
+            repo.remove_file(full_path)?;
         }
 
         Ok(None)
@@ -122,7 +129,7 @@ pub mod cmd {
     pub fn set(args: Args, app: &mut Application) -> Result<Option<String>> {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(path))?;
-        let contents = secret_prompt("Secret");
+        let contents = secret_prompt("Secret")?;
         app.set_(full_path, contents.as_bytes())?;
         Ok(None)
     }
@@ -131,10 +138,12 @@ pub mod cmd {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(path))?;
         let contents = {
-            let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-            let secret = ctx.get_contents().unwrap();
+            let mut ctx: ClipboardContext =
+                ClipboardProvider::new().map_err(|e| Error::Clipboard(e))?;
+            let secret = ctx.get_contents().map_err(|e| Error::Clipboard(e))?;
             // Clear the contents
-            ctx.set_contents("".to_owned()).unwrap();
+            ctx.set_contents("".to_owned())
+                .map_err(|e| Error::Clipboard(e))?;
             secret
         };
         app.set_(full_path, contents.as_bytes())?;
@@ -148,7 +157,7 @@ pub mod cmd {
         // create a file and write content to it
         let mut file = OpenOptions::new()
             .read(true)
-            .open(&mut app.repo, full_path)?;
+            .open(&mut app.repo.borrow_mut(), full_path)?;
         // read all full_path
         let mut content = String::new();
         file.read_to_string(&mut content)?;
@@ -156,14 +165,16 @@ pub mod cmd {
     }
 
     pub fn cp(args: Args, app: &mut Application) -> Result<Option<String>> {
-        let contents = cat(args, app)?.unwrap();
-        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-        ctx.set_contents(contents).unwrap();
+        let contents = cat(args, app)?.expect("file contents");
+        let mut ctx: ClipboardContext =
+            ClipboardProvider::new().map_err(|e| Error::Clipboard(e))?;
+        ctx.set_contents(contents)
+            .map_err(|e| Error::Clipboard(e))?;
         Ok(None)
     }
 
     pub fn vi(args: Args, app: &mut Application) -> Result<Option<String>> {
-        if !confirm_prompt("Insecure access that leaks secrets to your file system, continue?") {
+        if !confirm_prompt("Insecure access that leaks secrets to your file system, continue?")? {
             return Ok(None);
         }
         let path: String = args["path"].convert()?;
@@ -172,7 +183,7 @@ pub mod cmd {
         let mut file = OpenOptions::new()
             .read(true)
             .create(true)
-            .open(&mut app.repo, full_path)?;
+            .open(&mut app.repo.borrow_mut(), full_path)?;
 
         // read all content
         let mut content = String::new();
@@ -192,7 +203,7 @@ pub mod cmd {
         let path: String = args["path"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(path))?;
 
-        let dirs = app.repo.read_dir(full_path)?;
+        let dirs = app.repo.borrow_mut().read_dir(full_path)?;
         let mut table = Table::new();
         table.add_row(Row::new(vec![
             Cell::new("name"),
@@ -236,26 +247,28 @@ pub mod cmd {
         let path: String = args["path"].convert()?;
         let length: usize = args["length"].convert()?;
         let full_path = PathAbs::new(app.cwd.join(&path))?;
-        if app.repo.path_exists(&full_path)? {
+        if app.repo.borrow_mut().path_exists(&full_path)? {
             Err(Error::FileExists(path))
         } else {
             let password = rand_password(length);
             app.set_(full_path, &password)?;
-            let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-            let password = String::from_utf8(password).unwrap();
-            ctx.set_contents(password).unwrap();
+            let mut ctx: ClipboardContext =
+                ClipboardProvider::new().map_err(|e| Error::Clipboard(e))?;
+            let password = String::from_utf8(password)?;
+            ctx.set_contents(password)
+                .map_err(|e| Error::Clipboard(e))?;
             Ok(None)
         }
     }
 
     pub fn changepwd(_args: Args, app: &mut Application) -> Result<Option<String>> {
-        let password = password::prompt(true);
+        let password = password::prompt(true)?;
         if app.opt.debug {
             println!("Your password is {} characters long", password.len());
         }
-        let password = seed::create(&app.opt, &password);
+        let password = seed::create(&app.opt, &password)?;
 
-        app.repo.reset_password(
+        app.repo.borrow_mut().reset_password(
             &app.password,
             &password,
             zbox::OpsLimit::Sensitive,
@@ -268,7 +281,7 @@ pub mod cmd {
     }
 
     pub fn info(_args: Args, app: &mut Application) -> Result<Option<String>> {
-        let info = app.repo.info()?;
+        let info = app.repo.borrow_mut().info()?;
         println!("Zbox Version: {}", info.version());
         println!("Repository ID: {}", info.volume_id().to_string());
         println!("Cipher: {:?}", info.cipher());

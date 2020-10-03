@@ -25,6 +25,12 @@ pub enum Error {
 
     #[error(display = "Not a directory: {}", _0)]
     NotDirectory(String),
+
+    #[error(display = "Clipboard error: {:?}", _0)]
+    Clipboard(Box<dyn std::error::Error>),
+
+    #[error(display = "Utf8 error: {:?}", _0)]
+    Utf8(#[error(source, from)] std::string::FromUtf8Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

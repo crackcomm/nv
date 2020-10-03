@@ -23,6 +23,14 @@ pub struct Opt {
     #[structopt(short, long)]
     pub create: bool,
 
+    /// Force open.
+    #[structopt(short, long)]
+    pub force: bool,
+
+    /// Read only.
+    #[structopt(long = "read", help = "Open with read only access.")]
+    pub read_only: bool,
+
     /// Debug features.
     #[structopt(long)]
     pub debug: bool,

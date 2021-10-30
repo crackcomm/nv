@@ -52,12 +52,6 @@ The most important parameter is `-r, --round` which increases amount of work req
 
 Uses [zbox](https://zbox.io/) file system with `Cipher::Xchacha`.
 
-# cloud storage
-
-It is possible to store your password repository in [ZboxFS](https://zbox.io/fs/) cloud.
-
-Use `--suri` flag to securely type your repository address without leaving a trace in bash history.
-
 # guarantees
 
 * Zero-knowledge

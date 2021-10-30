@@ -19,10 +19,6 @@ fn main() -> Result<()> {
     }
     opt.repo_uri = opt.repo_uri.replace("$NAMESPACE", &opt.namespace);
 
-    if opt.suri {
-        opt.repo_uri = nv::common::secret_prompt("Repo URI")?;
-    }
-
     if opt.debug {
         println!("Repository: {}", opt.repo_uri);
     }

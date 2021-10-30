@@ -11,10 +11,6 @@ pub struct Opt {
     )]
     pub repo_uri: String,
 
-    /// Ask for URI in secret mode.
-    #[structopt(short, long)]
-    pub suri: bool,
-
     /// NV namespace.
     #[structopt(short, long, default_value = "default")]
     pub namespace: String,
